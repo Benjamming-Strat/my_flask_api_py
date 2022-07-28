@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+#folder-environment
+flask_api_free_code_camp
+
 # C extensions
 *.so
 
