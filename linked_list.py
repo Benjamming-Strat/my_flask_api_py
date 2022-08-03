@@ -53,6 +53,9 @@ class Linked_list():
         while node:         
             if node.data["id"] == int(user_id):
                 return node.data
+            
             node = node.next_node #wieso ist das hier der next node???? node bleibt doch einfach immer self.head = node mit dem user.id == 200
-        return None
+            
+            
+                
             

@@ -1,3 +1,4 @@
+from tkinter import CASCADE
 from flask import Flask, request, jsonify
 from sqlite3 import Connection as SQLite3Connection
 from datetime import datetime
@@ -38,7 +39,7 @@ class User(db.Model):
     email = db.Column(db.String(50))
     address = db.Column(db.String(200))
     phone = db.Column(db.String(50))
-    posts = db.relationship("BlogPost")
+    posts = db.relationship("BlogPost", cascade="all, delete") #if we delete a user by id it automatically deletes the row in table BlogPost because user.id has a constraint as foreign key
 
 class BlogPost(db.Model):
     __tablename__ = "BlogPost"
@@ -123,7 +124,10 @@ def get_one_user(user_id):
 
 @app.route("/user/<user_id>", methods=["DELETE"])
 def delete_user(user_id):
-    pass
+    user = User.query.filter_by(id=user_id).first()
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({"message": "User deleted"}), 200
 
 @app.route("/user/<user_id>", methods=["GET"])
 def get_all_blog_posts(user_id):
