@@ -1,12 +1,23 @@
+'''
+This is Code from a Class on FreeCodeCamp called Datastructures for Pythondevelopers (w/ Flask)
+ It is my first API. I have typed it on my own from the youtube video to understand the functionality.
+'''
+
+
 from tkinter import CASCADE
-from flask import Flask, request, jsonify
+from typing import Hashable
+from flask import Flask, request, jsonify, session
 from sqlite3 import Connection as SQLite3Connection
 from datetime import datetime
 from sqlalchemy.engine import Engine
 from sqlalchemy import event
 from flask_sqlalchemy import SQLAlchemy
 import linked_list
-
+import hastable
+import random
+import binarysearchtree
+import custom_queue
+import stack
 
 
 
@@ -107,7 +118,6 @@ def get_all_users_ascending():
 def get_one_user(user_id):
     users = User.query.all() #descending höchste ID ganz oben
     all_users_ll = linked_list.Linked_list()
-    # node[data.id]-->node[data.id]-->node
     for user in users:
         all_users_ll.insert_beginning(
         {
@@ -129,17 +139,85 @@ def delete_user(user_id):
     db.session.commit()
     return jsonify({"message": "User deleted"}), 200
 
-@app.route("/user/<user_id>", methods=["GET"])
-def get_all_blog_posts(user_id):
-    pass
+@app.route("/user/<user_id>", methods=["POST"])
+def create_all_blog_posts(user_id):
+    data = request.get_json()
+    user = User.query.filter_by(user_id)
+    if not user:
+        return jsonify({"Message": "User does not Exist"}), 400
+    
+    ht = hastable.Hashtable(10)
+    ht.add_key_value("title" , data["title"])
+    ht.add_key_value("body" , data["body"])
+    ht.add_key_value("date" , now)
+    ht.add_key_value("user_id" , user_id)
+
+    new_blogpost = BlogPost(
+        title = ht.get_value("title"),
+        body = ht.get_value("body"),
+        date = ht.get_value("date"),
+        user_id = ht.get_value("user_id")
+    )
+    db.session.add(new_blogpost)
+    db.session.commit()
+    return jsonify({"Message": "New Blogpost created"}), 200
 
 @app.route("/blog_post/<blog_post_id>", methods=["GET"])
-def get_one_blog_post(blog_post_id):
-    pass
+def get_one_blog_posts(blog_post_id):
+    blog_posts = BlogPost.query.all()
+    random.shuffle(blog_posts)
+    bst = binarysearchtree.BinarySearchTree()
+    for post in blog_posts:
+        bst.insert(
+            {
+                "id":post.id,
+                "title":post.title,
+                "body":post.body,
+                "user":post.user_id
+            }
+        )
+    post = bst.search(blog_post_id)
+    if not post:
+        return jsonify({"message": "post not found"}), 400
+    return jsonify(post)
 
-@app.route("/blog_post/<blog_post_id>", methods=["DELETE"])
-def delete_blog_post(blog_post_id):
-    pass
+
+@app.route("/blog_post/numeric_body", methods=["GET"])
+def get_numeric_post_bodies():
+    blog_posts = BlogPost.query.all()
+    q = custom_queue.Queue()
+    for post in blog_posts:
+        q.enqueue(post)
+
+    
+    return_list = []
+    for _ in range(len(blog_posts)):
+        post = q.dequeue()
+        numeric_body = 0
+        for char in post.data.body:
+            numeric_body += ord(char) #ascii equivalent
+
+        post.data.body = numeric_body
+        return_list.append({"id" : post.data.id,
+            "title": post.data.title,
+            "body": post.data.body,
+            "user_id": post.data.user_id})
+
+    return jsonify(return_list), 200
+
+
+@app.route("/blog_post/delete_last_10", methods=["DELETE"])
+def delete_last_10():
+    blog_posts = BlogPost.query.all()
+    s = stack.Stack()
+    for post in blog_posts:
+        s.push(post)
+    for _ in range(10):
+        post_to_delete = s.pop()
+        db.session.delete(post_to_delete.data) #pop returns a node, access data
+        db.session.commit()
+    return jsonify({"Message": "Success"})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
